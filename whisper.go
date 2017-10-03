@@ -20,9 +20,6 @@ func main() {
 
 	command := strings.Join(flag.Args(), " ")
 
-	log.Printf("file = %v", *file)
-	log.Printf("command = %v", command)
-
 	if *file == "" || len(command) == 0 {
 		log.Fatal("usage: whisper -f <file> <command>")
 	}
@@ -33,17 +30,10 @@ func main() {
 		log.Fatalf("Couldn't determine absolute path to file: %v", err)
 	}
 
-	yamlBytes, err := decrypt.File(path, "yaml")
+	decryptedEnvironment, err := decryptEnvironmentVars(path)
 
 	if err != nil {
-		log.Fatalf("Couldn't decrypt file: %v", err)
-	}
-
-	secrets := make(map[string]interface{})
-	err = yaml.Unmarshal(yamlBytes, &secrets)
-
-	if err != nil {
-		log.Fatalf("Couldn't unmarshal YAML bytes: %v", err)
+		log.Fatalf("Failed to decrypt environment vars: %v", err)
 	}
 
 	cmd := exec.Command("sh", "-c", command)
@@ -52,13 +42,34 @@ func main() {
 		cmd.Env = os.Environ()
 	}
 
-	environmentMap := secrets["environment"].(map[interface{}]interface{})
-	for k, v := range environmentMap {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
-	}
+	cmd.Env = append(cmd.Env, decryptedEnvironment...)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	cmd.Run()
+}
+
+func decryptEnvironmentVars(sopsFile string) ([]string, error) {
+	yamlBytes, err := decrypt.File(sopsFile, "yaml")
+
+	if err != nil {
+		return nil, err
+	}
+
+	secrets := make(map[string]interface{})
+	err = yaml.Unmarshal(yamlBytes, &secrets)
+
+	if err != nil {
+		return nil, err
+	}
+
+	environmentStrings := make([]string, 1)
+
+	environmentMap := secrets["environment"].(map[interface{}]interface{})
+	for k, v := range environmentMap {
+		environmentStrings = append(environmentStrings, fmt.Sprintf("%s=%v", k, v))
+	}
+
+	return environmentStrings, nil
 }
