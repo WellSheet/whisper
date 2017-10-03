@@ -1,5 +1,4 @@
 # Whisper
----
 
 Runs an arbitrary command using secrets provided in a [SOPS](https://github.com/mozilla/sops)-encrypted file.
 
