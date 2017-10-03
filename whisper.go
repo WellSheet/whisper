@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	// get options: -f <file name> <command>
 	file := flag.String("f", "", "path to SOPS file")
 	passThroughEnv := flag.Bool("p", false, "pass the current environment through")
 	flag.Parse()
@@ -21,7 +20,7 @@ func main() {
 	command := strings.Join(flag.Args(), " ")
 
 	if *file == "" || len(command) == 0 {
-		log.Fatal("usage: whisper -f <file> <command>")
+		log.Fatal("usage: whisper -f <file> [-p] <command>")
 	}
 
 	path, err := filepath.Abs(*file)
